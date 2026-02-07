@@ -174,12 +174,30 @@ def load_json(json_path):
 
 
 def write_json(json_path, json_obj):
-    """Write the JSON object at the given path."""
+    """Write the JSON object at the given path.
+
+    Uses atomic write (write to temp file, then rename) to prevent
+    corruption if the process is killed mid-write (e.g. during shutdown).
+    """
+    import tempfile
     try:
-        with open(json_path, "w") as json_file:
-            json.dump(json_obj, json_file, indent=4, sort_keys=True)
+        # Write to a temporary file in the same directory first
+        dir_name = os.path.dirname(json_path)
+        with tempfile.NamedTemporaryFile(
+            mode="w", dir=dir_name, suffix=".tmp", delete=False
+        ) as tmp_file:
+            json.dump(json_obj, tmp_file, indent=4, sort_keys=True)
+            tmp_file.flush()
+            os.fsync(tmp_file.fileno())
+            tmp_path = tmp_file.name
+        # Atomic rename (on POSIX systems, rename is atomic if src and dst are on same filesystem)
+        os.replace(tmp_path, json_path)
     except BaseException:
-        pass
+        # Clean up the temp file if something went wrong
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
 
 
 def delete(file_path):
