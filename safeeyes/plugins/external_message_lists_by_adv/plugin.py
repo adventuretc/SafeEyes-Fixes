@@ -106,7 +106,9 @@ def _parse_message_file(content):
 		msg = "\n".join(current_message_lines).strip()
 		if msg:
 			messages.append(msg)
-
+	
+	logging.debug("Loaded all these messages (contents of one file):")
+	logging.debug(messages)
 	return messages
 
 
