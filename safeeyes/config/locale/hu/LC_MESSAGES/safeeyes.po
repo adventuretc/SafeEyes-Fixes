@@ -129,7 +129,7 @@ msgid "Time to prepare for a break (in seconds)"
 msgstr "Felkészülési idő a pihenő előtt (másodpercben)"
 
 # Settings dialog
-msgid "Keyboard shortcuts disabled period (in seconds)"
+msgid "Skipping/postponing disabled period (in seconds)"
 msgstr "Gyorsbillentyűk letiltásának hossza (másodpercben)"
 
 # Settings dialog

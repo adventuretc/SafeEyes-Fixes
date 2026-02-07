@@ -132,7 +132,7 @@ msgid "Time to prepare for a break (in seconds)"
 msgstr "Laikas, skirtas pasiruošti pertraukai (sekundėmis)"
 
 # Settings dialog
-msgid "Keyboard shortcuts disabled period (in seconds)"
+msgid "Skipping/postponing disabled period (in seconds)"
 msgstr "Išjungtų klaviatūros trumpinių laikotarpis (sekundėmis)"
 
 # Settings dialog

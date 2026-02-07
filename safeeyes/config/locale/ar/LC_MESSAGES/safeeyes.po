@@ -131,7 +131,7 @@ msgid "Time to prepare for a break (in seconds)"
 msgstr "مدة التجهيز لاستراحة (ثوان)"
 
 # Settings dialog
-msgid "Keyboard shortcuts disabled period (in seconds)"
+msgid "Skipping/postponing disabled period (in seconds)"
 msgstr "مدة تعطيل اختصارات لوحة المفاتيح (ثوان)"
 
 # Settings dialog

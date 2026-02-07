@@ -132,7 +132,7 @@ msgid "Time to prepare for a break (in seconds)"
 msgstr "Voorbereidingstijd voor een pauze (in seconden)"
 
 # Settings dialog
-msgid "Keyboard shortcuts disabled period (in seconds)"
+msgid "Skipping/postponing disabled period (in seconds)"
 msgstr "Tijd dat sneltoetsen uitgeschakeld zijn (in seconden)"
 
 # Settings dialog

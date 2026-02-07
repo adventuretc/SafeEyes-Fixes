@@ -65,6 +65,7 @@ class BreakScreen:
         self.shortcut_disable_time = 2
         self.strict_break = False
         self.windows = []
+        self.button_widgets = []
         self.show_skip_button = False
         self.show_postpone_button = False
 
@@ -90,6 +91,8 @@ class BreakScreen:
                 )
             )
 
+        # TODO: shortcut_disable_time should be renamed
+        # it used to be just about keyboard shortcuts - now it also controls whether the buttons are locked
         self.shortcut_disable_time = config.get("shortcut_disable_time", 2)
         self.strict_break = config.get("strict_break", False)
 
@@ -109,15 +112,20 @@ class BreakScreen:
 
     def on_skip_clicked(self, button) -> None:
         """Skip button press event handler."""
-        self.skip_break()
+
+        if self.enable_shortcut:
+            self.skip_break()
 
     def on_postpone_clicked(self, button) -> None:
         """Postpone button press event handler."""
-        self.postpone_break()
+
+        if self.enable_shortcut:
+            self.postpone_break()
 
     def show_count_down(self, countdown: int, seconds: int) -> None:
         """Show/update the count down on all screens."""
         self.enable_shortcut = self.shortcut_disable_time <= seconds
+        self.__set_button_widgets_sensitive()
         mins, secs = divmod(countdown, 60)
         timeformat = "{:02d}:{:02d}".format(mins, secs)
         self.__update_count_down(timeformat)
@@ -184,7 +192,10 @@ class BreakScreen:
                 self.on_postpone_clicked,
                 self.show_skip_button,
                 self.on_skip_clicked,
+                self.enable_shortcut,
             )
+            # Collect button widgets for sensitivity updates
+            self.button_widgets.extend(window.get_button_widgets())
 
             if self.context.is_wayland:
                 # Note: in theory, this could also be used on X11
@@ -337,11 +348,18 @@ class BreakScreen:
         logging.info("Unlock the keyboard")
         self.lock_keyboard = False
 
+    def __set_button_widgets_sensitive(self) -> None:
+        """Enable or disable skip/postpone buttons based on whether shortcuts are enabled."""
+        for button in self.button_widgets:
+            if button.get_sensitive() != self.enable_shortcut:
+                button.set_sensitive(self.enable_shortcut)
+
     def __destroy_all_screens(self) -> None:
         """Close all the break screens."""
         for win in self.windows:
             win.destroy()
         del self.windows[:]
+        del self.button_widgets[:]
 
 
 @Gtk.Template(filename=BREAK_SCREEN_GLADE)
@@ -372,10 +390,12 @@ class BreakScreenWindow(Gtk.Window):
         on_postpone: typing.Callable[[Gtk.Button], None],
         show_skip: bool,
         on_skip: typing.Callable[[Gtk.Button], None],
+        enable_shortcut: bool = True,
     ):
         super().__init__(application=application)
 
         self.on_close = on_close
+        self._button_widgets: list[Gtk.Button] = []
 
         for tray_action in tray_actions:
             # TODO: apparently, this would be better served with an icon theme
@@ -400,7 +420,9 @@ class BreakScreenWindow(Gtk.Window):
             btn_postpone.get_style_context().add_class("btn_postpone")
             btn_postpone.connect("clicked", on_postpone)
             btn_postpone.set_visible(True)
+            btn_postpone.set_sensitive(enable_shortcut)
             self.box_buttons.append(btn_postpone)
+            self._button_widgets.append(btn_postpone)
 
         if show_skip:
             # Add the skip button
@@ -408,13 +430,19 @@ class BreakScreenWindow(Gtk.Window):
             btn_skip.get_style_context().add_class("btn_skip")
             btn_skip.connect("clicked", on_skip)
             btn_skip.set_visible(True)
+            btn_skip.set_sensitive(enable_shortcut)
             self.box_buttons.append(btn_skip)
+            self._button_widgets.append(btn_skip)
 
         # Set values
         if image_path:
             self.img_break.set_from_file(image_path)
         self.lbl_message.set_label(message)
         self.lbl_widget.set_markup(widget)
+
+    def get_button_widgets(self) -> list[Gtk.Button]:
+        """Return the skip/postpone button widgets for sensitivity management."""
+        return self._button_widgets
 
     def set_count_down(self, count: str) -> None:
         self.lbl_count.set_text(count)

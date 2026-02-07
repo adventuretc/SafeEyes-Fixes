@@ -131,7 +131,7 @@ msgid "Time to prepare for a break (in seconds)"
 msgstr "Etenaldirako prestatzeko denbora (segundotan)"
 
 # Settings dialog
-msgid "Keyboard shortcuts disabled period (in seconds)"
+msgid "Skipping/postponing disabled period (in seconds)"
 msgstr "Laster-teklak desgaitutako aldia (segundotan)"
 
 # Settings dialog

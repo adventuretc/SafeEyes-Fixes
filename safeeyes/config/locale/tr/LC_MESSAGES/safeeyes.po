@@ -132,7 +132,7 @@ msgid "Time to prepare for a break (in seconds)"
 msgstr "Molaya hazırlık için süre (saniye)"
 
 # Settings dialog
-msgid "Keyboard shortcuts disabled period (in seconds)"
+msgid "Skipping/postponing disabled period (in seconds)"
 msgstr "Klavye kısayollarının etkisiz kalma süresi (saniye)"
 
 # Settings dialog

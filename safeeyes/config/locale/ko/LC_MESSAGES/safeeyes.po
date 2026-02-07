@@ -129,7 +129,7 @@ msgid "Time to prepare for a break (in seconds)"
 msgstr "휴식 준비 시간 (초)"
 
 # Settings dialog
-msgid "Keyboard shortcuts disabled period (in seconds)"
+msgid "Skipping/postponing disabled period (in seconds)"
 msgstr "자판 단축키 비활성 기간 (초)"
 
 # Settings dialog
