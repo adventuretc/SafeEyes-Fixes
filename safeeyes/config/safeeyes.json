@@ -139,7 +139,7 @@
         {
             "id": "external_message_lists_by_adv",
             "enabled": true,
-            "version": "1.0.0",
+            "version": "1.1.0",
             "settings": {
                 "message_file_paths": []
             }

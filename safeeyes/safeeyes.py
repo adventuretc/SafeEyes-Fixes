@@ -289,6 +289,11 @@ class SafeEyes(Gtk.Application):
         except RequiredPluginException as e:
             self.show_required_plugin_dialog(e)
 
+        # Re-initialize core after plugins init, because plugins like
+        # external_message_lists_by_adv may have injected new break entries
+        # into the config's short_breaks / long_breaks lists.
+        self.safe_eyes_core.initialize(self.config)
+
         self.hold()
 
         atexit.register(self.persist_session)
@@ -503,6 +508,11 @@ class SafeEyes(Gtk.Application):
         except RequiredPluginException as e:
             self.show_required_plugin_dialog(e)
             return
+
+        # Re-initialize core after plugins reload, because plugins like
+        # external_message_lists_by_adv may have injected new break entries
+        # into the config's short_breaks / long_breaks lists.
+        self.safe_eyes_core.initialize(config)
 
         if set_active:
             self.active = True

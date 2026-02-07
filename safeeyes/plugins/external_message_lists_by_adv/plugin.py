@@ -29,7 +29,7 @@ File format:
 	Messages are trimmed for leading/trailing whitespace.
 
 	Escape code:
-		\- at the start of a line produces a literal - at the start of
+		\\- at the start of a line produces a literal - at the start of
 		that line inside the message (the backslash is consumed).
 
 	Mid-line and end-of-line dashes are always literal.
@@ -71,7 +71,7 @@ def _parse_message_file(content):
 	- A line starting with a single - (dash) starts a new message.
 	  The remainder of that line (after the dash and optional space) is the
 	  beginning of the new message.
-	- A line starting with \- is an escaped dash: it produces a literal -
+	- A line starting with \\- is an escaped dash: it produces a literal -
 	  at the start of that line within the current message.
 	- Mid-line and end-of-line dashes are always literal / part of the message.
 	- Messages are trimmed for whitespace on their start and end.
