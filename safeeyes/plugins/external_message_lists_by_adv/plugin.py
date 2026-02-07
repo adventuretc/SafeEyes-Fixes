@@ -104,11 +104,17 @@ def init(ctx, safeeyes_config, plugin_config):
 	)
 
 
-def on_pre_break(break_obj):
-	"""Replace the break name with a random message from the external pool.
+# def on_pre_break(break_obj):
+# 	"""Replace the break name with a random message from the external pool.
 
-	Called before each break is shown. If the message pool is non-empty,
-	the break's name is replaced with a randomly chosen message.
-	"""
-	if _messages:
-		break_obj.name = random.choice(_messages)
+# 	Called before each break is shown. If the message pool is non-empty,
+# 	the break's name is replaced with a randomly chosen message.
+# 	"""
+# 	break_obj.name = "debug1"
+# 	if _messages:
+# 		break_obj.name = random.choice(_messages)
+
+# def on_start_break(break_obj):
+# 	break_obj.name = "debug2"
+# 	if _messages:
+# 		break_obj.name = random.choice(_messages)

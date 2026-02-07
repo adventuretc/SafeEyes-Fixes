@@ -329,6 +329,8 @@ class BreakQueue:
             breaks_order = random.sample(break_configs, size)
         else:
             breaks_order = break_configs
+        
+        # This is in fact where the queue creation happens on program start. 2026-02-07
 
         queue: list[Break] = []
         for break_config in breaks_order:
