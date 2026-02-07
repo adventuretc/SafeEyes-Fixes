@@ -1,0 +1,23 @@
+{
+    "meta": {
+        "name": "External Message Lists",
+        "description": "Load break messages from external text files. Messages are separated by @@ and added to the common break message pool.",
+        "version": "1.0.0"
+    },
+    "dependencies": {
+        "python_modules": [],
+        "shell_commands": [],
+        "operating_systems": [],
+        "desktop_environments": [],
+        "resources": []
+    },
+    "settings": [
+        {
+            "id": "message_file_paths",
+            "label": "Paths to message files (one per line, messages separated by @@)",
+            "type": "TEXT",
+            "default": ""
+        }
+    ],
+    "break_override_allowed": true
+}

@@ -135,6 +135,14 @@
             "settings": {
                 "number_of_allowed_skips_in_a_row": 2
             }
+        },
+        {
+            "id": "external_message_lists_by_adv",
+            "enabled": true,
+            "version": "1.0.0",
+            "settings": {
+                "message_file_paths": []
+            }
         }
     ]
 }
