@@ -31,7 +31,7 @@ pwd --physical
 
 
 export PYTHONPATH="/home/xy/workspace/Safeeyes fixálása/safeeyes-3.3.1/"
-python3 -m safeeyes
+python3 -m safeeyes "$@"
 
 
 # if test -f "./Program.py"
