@@ -77,6 +77,8 @@ class SafeEyes(Gtk.Application):
             ("about", "a", _("show the about dialog")),
             ("settings", "s", _("show the settings dialog")),
             ("take-break", "t", _("Take a break now").lower()),
+            ("take-short-break", None, _("Take a short break now").lower()),
+            ("take-long-break", None, _("Take a long break now").lower()),
             # activate action
             ("disable", "d", _("disable the currently running Safe Eyes instance")),
             ("enable", "e", _("enable the currently running Safe Eyes instance")),
@@ -89,6 +91,7 @@ class SafeEyes(Gtk.Application):
             ),
             # toggle
             ("debug", None, _("start Safe Eyes in debug mode")),
+            ("reset", None, _("Reset the scheduled time of the next break")),
             # TODO: translate
             ("version", None, "show program's version number and exit"),
         ]
@@ -109,6 +112,9 @@ class SafeEyes(Gtk.Application):
             ("show_about", self.show_about),
             ("show_settings", self.show_settings),
             ("take_break", self.take_break),
+            ("take_break_short", self.take_break_short),
+            ("take_break_long", self.take_break_long),
+            ("reset_safeeyes", self.reset_safeeyes),
             ("enable_safeeyes", self.enable_safeeyes),
             ("disable_safeeyes", self.disable_safeeyes),
             ("quit", self.quit),
@@ -180,6 +186,18 @@ class SafeEyes(Gtk.Application):
                 self.activate_action("take_break", None)
                 return 0
 
+            if options.contains("take-short-break"):
+                self.activate_action("take_break_short", None)
+                return 0
+
+            if options.contains("take-long-break"):
+                self.activate_action("take_break_long", None)
+                return 0
+
+            if options.contains("reset"):
+                self.activate_action("reset_safeeyes", None)
+                return 0
+
             logging.info("Safe Eyes is already running")
             return 0  # TODO: return error code here?
 
@@ -220,6 +238,12 @@ class SafeEyes(Gtk.Application):
             self.show_settings()
         elif cli.get("take-break"):
             self.take_break()
+        elif cli.get("take-short-break"):
+            self.take_break_short()
+        elif cli.get("take-long-break"):
+            self.take_break_long()
+        elif cli.get("reset"):
+            self.reset_safeeyes()
 
         return 0
 
@@ -543,6 +567,26 @@ class SafeEyes(Gtk.Application):
     def take_break(self, break_type: typing.Optional[BreakType] = None) -> None:
         """Take a break now."""
         self.safe_eyes_core.take_break(break_type)
+
+    def take_break_short(self) -> None:
+        """Take a short break now."""
+        self.take_break(BreakType.SHORT_BREAK)
+
+    def take_break_long(self) -> None:
+        """Take a long break now."""
+        self.take_break(BreakType.LONG_BREAK)
+
+    def reset_safeeyes(self) -> None:
+        """Reset the scheduled time of the next break.
+
+        Stops the core and restarts it, effectively resetting the timer
+        without changing the break queue position (long break countdown is preserved).
+        """
+        logging.info("Resetting Safe Eyes")
+        if self.active:
+            self.plugins_manager.stop()
+            self.safe_eyes_core.stop()
+            self.restart(self.config, set_active=True)
 
     def status(self):
         """Return the status of Safe Eyes."""

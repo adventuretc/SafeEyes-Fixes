@@ -63,7 +63,7 @@
         },
         {
             "id": "audiblealert",
-            "enabled": true,
+            "enabled": false,
             "version": "0.0.3",
             "settings": {
                 "pre_break_alert": true,
