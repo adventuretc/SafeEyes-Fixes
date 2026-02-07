@@ -96,6 +96,15 @@ class Config:
     ):
         self.__user_config = user_config
         self.__system_config = system_config
+        # Snapshot the break lists so that plugin-injected entries
+        # (e.g. from external_message_lists_by_adv) are never persisted
+        # to disk. Only the original break entries should be saved.
+        self.__original_short_breaks = copy.deepcopy(
+            user_config.get("short_breaks", [])
+        )
+        self.__original_long_breaks = copy.deepcopy(
+            user_config.get("long_breaks", [])
+        )
 
     @classmethod
     def __merge_dictionary(cls, old_dict, new_dict, force_upgrade_keys: list[str]):
@@ -118,12 +127,33 @@ class Config:
             user_config=copy.deepcopy(self.__user_config),
             system_config=self.__system_config,
         )
+        # Carry over the original (clean) break lists so that saving
+        # the clone also avoids persisting plugin-injected entries.
+        config.__original_short_breaks = copy.deepcopy(self.__original_short_breaks)
+        config.__original_long_breaks = copy.deepcopy(self.__original_long_breaks)
         return config
 
     def save(self) -> None:
-        """Save the configuration to file."""
+        """Save the configuration to file.
+
+        Temporarily swaps in the original break lists (without any
+        plugin-injected entries) so that only the user's own break
+        config gets persisted to disk.
+        """
         logging.debug("Writing config to disk")
+        # Swap in original break lists to avoid saving plugin-injected entries
+        runtime_short = self.__user_config.get("short_breaks")
+        runtime_long = self.__user_config.get("long_breaks")
+        self.__user_config["short_breaks"] = self.__original_short_breaks
+        self.__user_config["long_breaks"] = self.__original_long_breaks
+
         utility.write_json(utility.CONFIG_FILE_PATH, self.__user_config)
+
+        # Restore the runtime break lists (with plugin-injected entries)
+        if runtime_short is not None:
+            self.__user_config["short_breaks"] = runtime_short
+        if runtime_long is not None:
+            self.__user_config["long_breaks"] = runtime_long
 
     def get(self, key, default_value=None):
         """Get the value."""
