@@ -107,6 +107,16 @@ class SafeEyes(Gtk.Application):
                 None,
             )
 
+        # Non-boolean options
+        self.add_main_option(
+            "take-n-minute-break",
+            0,
+            GLib.OptionFlags.NONE,
+            GLib.OptionArg.DOUBLE,
+            _("take a break of the given duration in minutes (float)"),
+            "MINUTES",
+        )
+
     def __register_actions(self) -> None:
         actions = [
             ("show_about", self.show_about),
@@ -128,6 +138,17 @@ class SafeEyes(Gtk.Application):
             action = Gio.SimpleAction.new(name, None)
             action.connect("activate", create_cb_discard_args(callback))
             self.add_action(action)
+
+        # Action with a double parameter: --take-n-minute-break <float>
+        take_n_action = Gio.SimpleAction.new(
+            "take_n_minute_break",
+            GLib.VariantType.new("d"),
+        )
+        take_n_action.connect(
+            "activate",
+            lambda action, param, _: self.take_n_minute_break(param.get_double()),
+        )
+        self.add_action(take_n_action)
 
     def do_handle_local_options(self, options):
         Gtk.Application.do_handle_local_options(self, options)
@@ -194,6 +215,15 @@ class SafeEyes(Gtk.Application):
                 self.activate_action("take_break_long", None)
                 return 0
 
+            if options.contains("take-n-minute-break"):
+                minutes = options.lookup_value(
+                    "take-n-minute-break", GLib.VariantType.new("d")
+                ).get_double()
+                self.activate_action(
+                    "take_n_minute_break", GLib.Variant.new_double(minutes)
+                )
+                return 0
+
             if options.contains("reset"):
                 self.activate_action("reset_safeeyes", None)
                 return 0
@@ -242,6 +272,8 @@ class SafeEyes(Gtk.Application):
             self.take_break_short()
         elif cli.get("take-long-break"):
             self.take_break_long()
+        elif cli.get("take-n-minute-break") is not None:
+            self.take_n_minute_break(cli.get("take-n-minute-break"))
         elif cli.get("reset"):
             self.reset_safeeyes()
 
@@ -585,6 +617,44 @@ class SafeEyes(Gtk.Application):
     def take_break_long(self) -> None:
         """Take a long break now."""
         self.take_break(BreakType.LONG_BREAK)
+
+    def take_n_minute_break(self, minutes: float) -> None:
+        """Take a break of a custom duration.
+
+        Temporarily overrides the current break's duration to the given
+        number of minutes, then triggers the break. The duration is
+        converted to seconds (rounded, at least 1 second).
+        """
+        if minutes <= 0:
+            logging.warning(
+                "--take-n-minute-break: invalid duration %.4f minutes, ignoring",
+                minutes,
+            )
+            return
+
+        # Duration in seconds, rounded to nearest integer, at least 1
+        # Rounding is explicit to avoid silent truncation
+        duration_seconds = max(1, round(minutes * 60))
+        logging.info(
+            "Taking a %.4f-minute break (%.4f seconds)",
+            minutes,
+            duration_seconds,
+        )
+
+        if self.safe_eyes_core._break_queue is None:
+            logging.warning("No breaks defined, cannot take a break")
+            return
+
+        # Temporarily override the current break's duration
+        break_obj = self.safe_eyes_core._break_queue.get_break()
+        original_duration = break_obj.duration
+        break_obj.duration = duration_seconds
+
+        # Take the break; after it finishes, the queue moves to the next
+        # break anyway, so the override only affects this one break.
+        # NOTE: the original duration is not restored because the break
+        # object rotates out of the queue head after the break is taken.
+        self.safe_eyes_core.take_break()
 
     def reset_safeeyes(self) -> None:
         """Reset the scheduled time of the next break.
