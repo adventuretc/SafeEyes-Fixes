@@ -328,6 +328,22 @@ class BreakScreen:
             if keycode != 0:
                 passthrough_keycodes.add(keycode)
 
+        # Look up Super keycodes so we can track whether Super is held.
+        super_keycodes = set()
+        for sym in (XK.XK_Super_L, XK.XK_Super_R):
+            kc = self.x11_display.keysym_to_keycode(sym)
+            if kc != 0:
+                super_keycodes.add(kc)
+
+        # Look up Alt keycodes for the Alt+Num_Lock combo.
+        alt_keycodes = set()
+        for sym in (XK.XK_Alt_L, XK.XK_Alt_R):
+            kc = self.x11_display.keysym_to_keycode(sym)
+            if kc != 0:
+                alt_keycodes.add(kc)
+
+        numlock_keycode = self.x11_display.keysym_to_keycode(XK.XK_Num_Lock)
+
         # Grab the keyboard in async mode. We consume all events by
         # reading them from the queue.  For passthrough keys we temporarily
         # ungrab, inject the key via XTest, then re-grab.  This way the
@@ -335,6 +351,11 @@ class BreakScreen:
         root = self.x11_display.screen().root
         root.change_attributes(event_mask=X.KeyPressMask | X.KeyReleaseMask)
         root.grab_keyboard(True, X.GrabModeAsync, X.GrabModeAsync, X.CurrentTime)
+
+        # We track which passthrough modifier keys are physically held down
+        # ourselves, because the ungrab→XTest→re-grab cycle can desync the
+        # X server's internal modifier state from reality.
+        held_keys = set()
 
         # Consume keyboard events
         while self.lock_keyboard:
@@ -344,6 +365,12 @@ class BreakScreen:
 
                 if event.type not in (X.KeyPress, X.KeyRelease):
                     continue
+
+                # Track physical key state
+                if event.type == X.KeyPress:
+                    held_keys.add(event.detail)
+                elif event.type == X.KeyRelease:
+                    held_keys.discard(event.detail)
 
                 # Check skip/postpone shortcuts first (only on KeyPress)
                 if self.enable_shortcut and event.type == X.KeyPress:
@@ -364,16 +391,17 @@ class BreakScreen:
                 # Pass through if:
                 #   - the keycode is in our passthrough set, OR
                 #   - Super (Mod4) is held (any Super+key combo), OR
-                #   - Alt+Num_Lock combo (Alt is Mod1)
+                #   - Alt+Num_Lock combo
                 should_passthrough = False
                 if event.detail in passthrough_keycodes:
                     should_passthrough = True
-                elif event.state & X.Mod4Mask:
-                    # Any key pressed while Super/Win is held → pass through
+                elif held_keys & super_keycodes or event.state & X.Mod4Mask:
+                    # Any key pressed while Super/Win is held → pass through.
+                    # We check both our own tracking (held_keys) and the
+                    # X server's modifier state (event.state) for robustness.
                     should_passthrough = True
-                elif event.state & X.Mod1Mask:
+                elif held_keys & alt_keycodes or event.state & X.Mod1Mask:
                     # Alt is held — only pass through Num_Lock
-                    numlock_keycode = self.x11_display.keysym_to_keycode(XK.XK_Num_Lock)
                     if event.detail == numlock_keycode:
                         should_passthrough = True
 
