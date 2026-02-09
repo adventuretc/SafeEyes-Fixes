@@ -654,7 +654,7 @@ class SafeEyes(Gtk.Application):
         # break anyway, so the override only affects this one break.
         # NOTE: the original duration is not restored because the break
         # object rotates out of the queue head after the break is taken.
-        self.safe_eyes_core.take_break()
+        self.safe_eyes_core.take_break() # test: ha ide BreakType.LONG_BREAK-t írok akkor elvész a beállított idő és a fix configurált időt adja be. Ez rossz.
 
     def reset_safeeyes(self) -> None:
         """Reset the scheduled time of the next break.
