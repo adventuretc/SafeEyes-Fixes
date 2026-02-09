@@ -328,22 +328,21 @@ class BreakScreen:
             if keycode != 0:
                 passthrough_keycodes.add(keycode)
 
-        # Grab the keyboard in *synchronous* mode so that we can decide
-        # per-event whether to replay it (pass through) or consume it.
-        # owner_events=True so that the grab goes to our window hierarchy.
+        # Grab the keyboard in async mode. We consume all events by
+        # reading them from the queue.  For passthrough keys we temporarily
+        # ungrab, inject the key via XTest, then re-grab.  This way the
+        # injected event is delivered immediately (no active grab blocks it).
         root = self.x11_display.screen().root
         root.change_attributes(event_mask=X.KeyPressMask | X.KeyReleaseMask)
-        root.grab_keyboard(True, X.GrabModeSync, X.GrabModeSync, X.CurrentTime)
+        root.grab_keyboard(True, X.GrabModeAsync, X.GrabModeAsync, X.CurrentTime)
 
-        # Process keyboard events
+        # Consume keyboard events
         while self.lock_keyboard:
             if self.x11_display.pending_events() > 0:
                 # Avoid waiting for next event by checking pending events
                 event = self.x11_display.next_event()
 
                 if event.type not in (X.KeyPress, X.KeyRelease):
-                    # Non-keyboard event — let the server continue processing
-                    self.x11_display.allow_events(X.AsyncKeyboard, X.CurrentTime)
                     continue
 
                 # Check skip/postpone shortcuts first (only on KeyPress)
@@ -352,15 +351,12 @@ class BreakScreen:
                         event.detail == self.keycode_shortcut_skip
                         and self.show_skip_button
                     ):
-                        # Consume this event, then break out of the loop
-                        self.x11_display.allow_events(X.AsyncKeyboard, X.CurrentTime)
                         utility.execute_main_thread(lambda: self.skip_break())
                         break
                     elif (
                         event.detail == self.keycode_shortcut_postpone
                         and self.show_postpone_button
                     ):
-                        self.x11_display.allow_events(X.AsyncKeyboard, X.CurrentTime)
                         utility.execute_main_thread(lambda: self.postpone_break())
                         break
 
@@ -382,11 +378,21 @@ class BreakScreen:
                         should_passthrough = True
 
                 if should_passthrough:
-                    # Replay the event as if the grab had not happened
-                    self.x11_display.allow_events(X.ReplayKeyboard, X.CurrentTime)
-                else:
-                    # Consume / swallow the event
-                    self.x11_display.allow_events(X.AsyncKeyboard, X.CurrentTime)
+                    # Temporarily release the grab, inject the key event
+                    # via XTest so it gets delivered immediately, then
+                    # re-grab.  The ungrab window is tiny (microseconds).
+                    self.x11_display.ungrab_keyboard(X.CurrentTime)
+                    self.x11_display.flush()
+                    self.x11_display.xtest_fake_input(
+                        event.type, event.detail, X.CurrentTime
+                    )
+                    self.x11_display.flush()
+                    root.grab_keyboard(
+                        True, X.GrabModeAsync, X.GrabModeAsync, X.CurrentTime
+                    )
+                    self.x11_display.flush()
+                # else: event is consumed (we read it from the queue and
+                #       simply don't act on it)
             else:
                 # Reduce the CPU usage by sleeping for a second
                 time.sleep(1)
