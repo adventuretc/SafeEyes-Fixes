@@ -74,22 +74,23 @@ def on_start_break(break_obj):
         context["skip_button_disabled"] = True
 
 
-def get_widget_title(break_obj):
-    """Return the widget title."""
+# Módosításaim célja: A limitconsecutiveskipping plugin-ban ki kell kapcsolni, hogy bármit is írjon a szünet képernyőre, mert zavar. Semmit ne írjon, csak dolgozzon a háttérben.
+# def get_widget_title(break_obj):
+    # """Return the widget title."""
     # Check if the plugin is enabled
-    if not enabled:
-        return ""
+    # if not enabled:
+        # return ""
 
-    return _("Limit Consecutive Skipping")
+    # return _("Limit Consecutive Skipping")
 
 
-def get_widget_content(break_obj):
-    """Return the statistics."""
+# def get_widget_content(break_obj):
+    # """Return the statistics."""
     # Check if the plugin is enabled
-    if not enabled:
-        return ""
+    # if not enabled:
+        # return ""
 
-    return _("Skipped or postponed %(num)d/%(allowed)d breaks in a row") % {
-        "num": no_of_skipped_breaks,
-        "allowed": no_allowed_skips,
-    }
+    # return _("Skipped or postponed %(num)d/%(allowed)d breaks in a row") % {
+        # "num": no_of_skipped_breaks,
+        # "allowed": no_allowed_skips,
+    # }
