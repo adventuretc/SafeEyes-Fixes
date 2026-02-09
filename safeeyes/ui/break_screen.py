@@ -357,6 +357,16 @@ class BreakScreen:
         # X server's internal modifier state from reality.
         held_keys = set()
 
+        # Anti-repeat cooldown: after a passthrough KeyPress is allowed
+        # for a given keycode, subsequent KeyPress events for that same
+        # keycode are blocked for 2 seconds.  This prevents X11 auto-repeat
+        # from flooding the target application with repeated keystrokes
+        # while the user holds a key during a break.
+        # KeyRelease events are always passed through so the target app
+        # doesn't think the key is stuck.
+        PASSTHROUGH_COOLDOWN_SECONDS = 2.0
+        passthrough_cooldown = {}  # keycode → time.monotonic() of last allowed KeyPress
+
         # Consume keyboard events
         while self.lock_keyboard:
             if self.x11_display.pending_events() > 0:
@@ -406,6 +416,16 @@ class BreakScreen:
                         should_passthrough = True
 
                 if should_passthrough:
+                    # Apply anti-repeat cooldown for KeyPress events.
+                    # KeyRelease events are always passed through.
+                    if event.type == X.KeyPress:
+                        now = time.monotonic()
+                        last_allowed = passthrough_cooldown.get(event.detail)
+                        if last_allowed is not None and (now - last_allowed) < PASSTHROUGH_COOLDOWN_SECONDS:
+                            # Still within cooldown — swallow this repeat
+                            continue
+                        passthrough_cooldown[event.detail] = now
+
                     # Temporarily release the grab, inject the key event
                     # via XTest so it gets delivered immediately, then
                     # re-grab.  The ungrab window is tiny (microseconds).
