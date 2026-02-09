@@ -290,39 +290,103 @@ class BreakScreen:
     def __lock_keyboard_x11(self) -> None:
         """Lock the keyboard to prevent the user from using keyboard shortcuts.
 
+        Certain keystrokes are passed through to the OS instead of being
+        consumed, so that e.g. numpad media controls, window management
+        shortcuts (Super+key) and toggle keys keep working during breaks.
+
         (X11 only)
         """
         if self.x11_display is None:
             return
 
-        from Xlib import X
+        from Xlib import X, XK
 
         logging.info("Lock the keyboard")
         self.lock_keyboard = True
 
-        # Grab the keyboard
+        # Build the set of keycodes that should be passed through to the OS.
+        # We look them up at runtime so that it works regardless of the
+        # user's keyboard layout / keymap.
+        passthrough_keysyms = [
+            XK.XK_Num_Lock,
+            XK.XK_KP_5,
+            XK.XK_KP_Begin,      # KP_5 when NumLock is off
+            XK.XK_KP_Up,
+            XK.XK_KP_Down,
+            XK.XK_KP_Subtract,
+            XK.XK_KP_Add,
+            XK.XK_KP_Multiply,
+            XK.XK_Scroll_Lock,
+            XK.XK_Return,
+            XK.XK_Pause,
+            XK.XK_Super_L,       # Win/Super key press itself
+            XK.XK_Super_R,
+        ]
+        passthrough_keycodes = set()
+        for keysym in passthrough_keysyms:
+            keycode = self.x11_display.keysym_to_keycode(keysym)
+            if keycode != 0:
+                passthrough_keycodes.add(keycode)
+
+        # Grab the keyboard in *synchronous* mode so that we can decide
+        # per-event whether to replay it (pass through) or consume it.
+        # owner_events=True so that the grab goes to our window hierarchy.
         root = self.x11_display.screen().root
         root.change_attributes(event_mask=X.KeyPressMask | X.KeyReleaseMask)
-        root.grab_keyboard(True, X.GrabModeAsync, X.GrabModeAsync, X.CurrentTime)
+        root.grab_keyboard(True, X.GrabModeSync, X.GrabModeSync, X.CurrentTime)
 
-        # Consume keyboard events
+        # Process keyboard events
         while self.lock_keyboard:
             if self.x11_display.pending_events() > 0:
                 # Avoid waiting for next event by checking pending events
                 event = self.x11_display.next_event()
+
+                if event.type not in (X.KeyPress, X.KeyRelease):
+                    # Non-keyboard event — let the server continue processing
+                    self.x11_display.allow_events(X.AsyncKeyboard, X.CurrentTime)
+                    continue
+
+                # Check skip/postpone shortcuts first (only on KeyPress)
                 if self.enable_shortcut and event.type == X.KeyPress:
                     if (
                         event.detail == self.keycode_shortcut_skip
                         and self.show_skip_button
                     ):
+                        # Consume this event, then break out of the loop
+                        self.x11_display.allow_events(X.AsyncKeyboard, X.CurrentTime)
                         utility.execute_main_thread(lambda: self.skip_break())
                         break
                     elif (
                         event.detail == self.keycode_shortcut_postpone
                         and self.show_postpone_button
                     ):
+                        self.x11_display.allow_events(X.AsyncKeyboard, X.CurrentTime)
                         utility.execute_main_thread(lambda: self.postpone_break())
                         break
+
+                # Determine whether this key event should be passed through.
+                # Pass through if:
+                #   - the keycode is in our passthrough set, OR
+                #   - Super (Mod4) is held (any Super+key combo), OR
+                #   - Alt+Num_Lock combo (Alt is Mod1)
+                should_passthrough = False
+                if event.detail in passthrough_keycodes:
+                    should_passthrough = True
+                elif event.state & X.Mod4Mask:
+                    # Any key pressed while Super/Win is held → pass through
+                    should_passthrough = True
+                elif event.state & X.Mod1Mask:
+                    # Alt is held — only pass through Num_Lock
+                    numlock_keycode = self.x11_display.keysym_to_keycode(XK.XK_Num_Lock)
+                    if event.detail == numlock_keycode:
+                        should_passthrough = True
+
+                if should_passthrough:
+                    # Replay the event as if the grab had not happened
+                    self.x11_display.allow_events(X.ReplayKeyboard, X.CurrentTime)
+                else:
+                    # Consume / swallow the event
+                    self.x11_display.allow_events(X.AsyncKeyboard, X.CurrentTime)
             else:
                 # Reduce the CPU usage by sleeping for a second
                 time.sleep(1)

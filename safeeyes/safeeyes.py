@@ -648,7 +648,7 @@ class SafeEyes(Gtk.Application):
         # Temporarily override the current break's duration
         break_obj = self.safe_eyes_core._break_queue.get_break()
         original_duration = break_obj.duration
-        break_obj.type = BreakType.LONG_BREAK # az üzenetek beállítása miatt rakom ezt ide
+        break_obj.type = BreakType.LONG_BREAK # az üzenetek halmazának beállítása miatt rakom ezt ide. De működni fog ez vajon?
         break_obj.duration = duration_seconds
 
         # Take the break; after it finishes, the queue moves to the next
