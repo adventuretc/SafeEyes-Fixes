@@ -39,8 +39,35 @@ class Config:
 
     @classmethod
     def load(cls) -> "Config":
+        import sys
+
         # Read the config files
-        user_config = utility.load_json(utility.CONFIG_FILE_PATH)
+        try:
+            user_config = utility.load_json(utility.CONFIG_FILE_PATH)
+        except Exception as e:
+            # The user config file exists but could not be parsed.
+            # Do NOT reset or overwrite it — exit with a clear error
+            # so the user can fix the file manually.
+            logging.critical(
+                "Failed to load user config file: %s",
+                utility.CONFIG_FILE_PATH,
+                exc_info=True,
+            )
+            print(
+                "\n" + "~" * 60,
+                file=sys.stderr,
+            )
+            print(
+                f"ERROR: Failed to load the configuration file."
+                f"\n\nFile: {utility.CONFIG_FILE_PATH}"
+                f"\nReason: {type(e).__name__}: {e}"
+                f"\n\nPlease fix the file manually (e.g. correct the JSON syntax)"
+                f" or delete it to start with a fresh default configuration.",
+                file=sys.stderr,
+            )
+            print("~" * 60 + "\n", file=sys.stderr)
+            sys.exit(1)
+
         user_config_disk = copy.deepcopy(user_config)
         system_config = utility.load_json(utility.SYSTEM_CONFIG_FILE_PATH)
         # If there any breaking changes in long_breaks, short_breaks or any other keys,

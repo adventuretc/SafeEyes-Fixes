@@ -162,15 +162,16 @@ def mkdir(path):
 
 
 def load_json(json_path):
-    """Load the JSON file from the given path."""
-    json_obj = None
-    if os.path.isfile(json_path):
-        try:
-            with open(json_path) as config_file:
-                json_obj = json.load(config_file)
-        except BaseException:
-            pass
-    return json_obj
+    """Load the JSON file from the given path.
+
+    Returns the parsed JSON object, or None if the file does not exist.
+    Raises on parse errors or I/O errors so the caller can decide
+    whether to abort or handle the failure.
+    """
+    if not os.path.isfile(json_path):
+        return None
+    with open(json_path) as config_file:
+        return json.load(config_file)
 
 
 def write_json(json_path, json_obj):
@@ -273,7 +274,15 @@ def load_plugins_config(safeeyes_config):
             icon = plugin_icon_path
         else:
             icon = get_resource_path("ic_plugin.png")
-        config = load_json(plugin_config_path)
+        config = None
+        try:
+            config = load_json(plugin_config_path)
+        except Exception:
+            logging.error(
+                "Failed to parse plugin config %s, skipping plugin.",
+                plugin_config_path,
+                exc_info=True,
+            )
         if config is None:
             continue
         dependency_description = check_plugin_dependencies(
@@ -573,7 +582,16 @@ def __open_plugin_config(plugins_dir, plugin_id):
     if not os.path.isfile(plugin_config_path) or not os.path.isfile(plugin_module_path):
         # Either the config.json or plugin.py is not available
         return None
-    return load_json(plugin_config_path)
+    try:
+        return load_json(plugin_config_path)
+    except Exception:
+        # Corrupt plugin config — not critical for the main app
+        logging.error(
+            "Failed to parse plugin config %s, skipping plugin.",
+            plugin_config_path,
+            exc_info=True,
+        )
+        return None
 
 
 def __update_plugin_config(plugin, plugin_config, config):
@@ -663,7 +681,16 @@ def open_session():
     """Open the last session."""
     logging.info("Reading the session file")
 
-    session = load_json(SESSION_FILE_PATH)
+    try:
+        session = load_json(SESSION_FILE_PATH)
+    except Exception:
+        # Session file is corrupt — not critical, just start fresh.
+        logging.error(
+            "Failed to parse session file %s, starting with a fresh session.",
+            SESSION_FILE_PATH,
+            exc_info=True,
+        )
+        session = None
     if session is None:
         session = {"plugin": {}}
     return session
