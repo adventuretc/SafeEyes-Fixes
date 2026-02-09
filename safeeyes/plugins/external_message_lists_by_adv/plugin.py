@@ -71,6 +71,7 @@ def _parse_message_file(content):
 	- A line starting with a single - (dash) starts a new message.
 	  The remainder of that line (after the dash and optional space) is the
 	  beginning of the new message.
+	- The file start itself also stars a new message.
 	- A line starting with \\- is an escaped dash: it produces a literal -
 	  at the start of that line within the current message.
 	- Mid-line and end-of-line dashes are always literal / part of the message.
@@ -83,7 +84,7 @@ def _parse_message_file(content):
 		# re.search("^...$") is used because re.match() is shit:
 		# it returns true even if only the beginning of the string matches.
 		if re.search(r"^-\s?", line):
-			# This line starts a new message.
+			# This line starts the next (a new) message.
 			# First, save the previous message if any.
 			if current_message_lines:
 				msg = "\n".join(current_message_lines).strip()
@@ -98,7 +99,7 @@ def _parse_message_file(content):
 			unescaped_line = line[1:]  # remove the leading backslash
 			current_message_lines.append(unescaped_line)
 		else:
-			# Continuation of the current message (or content before first -)
+			# Continuation of the current message (or file contents before the first "-" sign)
 			current_message_lines.append(line)
 
 	# Don't forget the last message
