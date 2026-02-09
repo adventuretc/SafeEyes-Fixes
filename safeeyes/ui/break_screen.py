@@ -364,8 +364,9 @@ class BreakScreen:
         # while the user holds a key during a break.
         # KeyRelease events are always passed through so the target app
         # doesn't think the key is stuck.
-        PASSTHROUGH_COOLDOWN_SECONDS = 2.0
-        passthrough_cooldown = {}  # keycode → time.monotonic() of last allowed KeyPress
+#         PASSTHROUGH_COOLDOWN_SECONDS = 2.0
+#         passthrough_cooldown = {}  # keycode → time.monotonic() of last allowed KeyPress
+	# update: It didn't work but broke the existing modifier-held pass-throug feature.
 
         # Consume keyboard events
         while self.lock_keyboard:
@@ -418,13 +419,13 @@ class BreakScreen:
                 if should_passthrough:
                     # Apply anti-repeat cooldown for KeyPress events.
                     # KeyRelease events are always passed through.
-                    if event.type == X.KeyPress:
-                        now = time.monotonic()
-                        last_allowed = passthrough_cooldown.get(event.detail)
-                        if last_allowed is not None and (now - last_allowed) < PASSTHROUGH_COOLDOWN_SECONDS:
-                            # Still within cooldown — swallow this repeat
-                            continue
-                        passthrough_cooldown[event.detail] = now
+                    # if event.type == X.KeyPress:
+                    #     now = time.monotonic()
+                    #     last_allowed = passthrough_cooldown.get(event.detail)
+                    #     if last_allowed is not None and (now - last_allowed) < PASSTHROUGH_COOLDOWN_SECONDS:
+                    #         # Still within cooldown — swallow this repeat
+                    #         continue
+                    #     passthrough_cooldown[event.detail] = now
 
                     # Temporarily release the grab, inject the key event
                     # via XTest so it gets delivered immediately, then
