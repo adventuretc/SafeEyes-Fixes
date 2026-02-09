@@ -146,7 +146,7 @@ class SafeEyes(Gtk.Application):
         )
         take_n_action.connect(
             "activate",
-            lambda action, param, _: self.take_n_minute_break(param.get_double()),
+            lambda action, param: self.take_n_minute_break(param.get_double()),
         )
         self.add_action(take_n_action)
 
