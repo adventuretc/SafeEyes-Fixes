@@ -168,17 +168,48 @@ class BreakQueue:
         self.__short_queue = short_queue
         self.__long_queue = long_queue
 
-        # load first break
-        self.__set_next_break()
+        # Restore break indices from session.
+        # The session stores the index of the last *completed* break
+        # (not the next one).  We advance past it so the next break
+        # served will be the one after the last completed one.
+        restored = False
+        last_short_idx = context.session.get("break_short_index")
+        last_long_idx = context.session.get("break_long_index")
 
-        # Restore the last break from session
-        last_break = context.session.get("break")
-        if last_break is not None:
-            current_break = self.get_break()
-            if last_break != current_break.name:
-                brk = self.next()
-                while brk != current_break and brk.name != last_break:
-                    brk = self.next()
+        if last_short_idx is not None and short_queue is not None:
+            if 0 <= last_short_idx < len(short_queue):
+                # Point to the break *after* the last completed one
+                self.__current_short = (last_short_idx + 1) % len(short_queue)
+                restored = True
+            else:
+                logging.warning(
+                    "Saved short break index %d is out of range (queue length %d), "
+                    "starting from the beginning.",
+                    last_short_idx, len(short_queue),
+                )
+
+        if last_long_idx is not None and long_queue is not None:
+            if 0 <= last_long_idx < len(long_queue):
+                # Point to the break *after* the last completed one
+                self.__current_long = (last_long_idx + 1) % len(long_queue)
+                restored = True
+            else:
+                logging.warning(
+                    "Saved long break index %d is out of range (queue length %d), "
+                    "starting from the beginning.",
+                    last_long_idx, len(long_queue),
+                )
+
+        # Also support restoring from the legacy "break" key (name-based)
+        # so that existing session.json files from before this change
+        # still work on the first run after the upgrade.
+        if not restored:
+            last_break_name = context.session.get("break")
+            if last_break_name is not None:
+                self.__restore_from_break_name(last_break_name)
+
+        # Set the first upcoming break from the (possibly restored) indices
+        self.__set_next_break()
 
     def get_break(self) -> Break:
         return self.__current_break
@@ -253,7 +284,7 @@ class BreakQueue:
             break_obj = self.__next_short()
 
         self.__current_break = break_obj
-        self.context.session["break"] = self.__current_break.name
+        self.__save_session_indices()
 
     def skip_long_break(self) -> None:
         if not (self.__short_queue and self.__long_queue):
@@ -271,7 +302,7 @@ class BreakQueue:
             # we could decrement the __current_long counter, but then we'd need to
             # handle wraparound and possibly randomizing, which seems complicated
             self.__current_break = self.__next_short()
-            self.context.session["break"] = self.__current_break.name
+            self.__save_session_indices()
 
     def is_empty(self, break_type: BreakType) -> bool:
         """Check if the given break type is empty or not."""
@@ -281,6 +312,62 @@ class BreakQueue:
             return self.__long_queue is None
         else:
             typing.assert_never(break_type)
+
+    def __save_session_indices(self) -> None:
+        """Persist the index of the last selected break into the session.
+
+        We store the index of the break that was just picked (i.e. the
+        one that is about to be / is being shown).  On restore we
+        advance past this index so the *next* break in sequence is
+        served.
+
+        The legacy "break" key (name-based) is removed so that old
+        sessions don't interfere.
+        """
+        # __next_short/__next_long already advanced the index past the
+        # break they returned, so the "last picked" index is one step back.
+        if self.__short_queue is not None:
+            last_short = (self.__current_short - 1) % len(self.__short_queue)
+            self.context.session["break_short_index"] = last_short
+        if self.__long_queue is not None:
+            last_long = (self.__current_long - 1) % len(self.__long_queue)
+            self.context.session["break_long_index"] = last_long
+
+        # Remove the legacy name-based key if present
+        self.context.session.pop("break", None)
+
+    def __restore_from_break_name(self, name: str) -> None:
+        """Legacy restore: find the break with the given name and set
+        the indices so that the *next* break served is the one after it.
+
+        This is only used when upgrading from the old name-based session
+        format.
+        """
+        # Try short breaks first
+        if self.__short_queue is not None:
+            for i, brk in enumerate(self.__short_queue):
+                if brk.name == name:
+                    self.__current_short = (i + 1) % len(self.__short_queue)
+                    logging.info(
+                        "Legacy session restore: matched short break '%s' at index %d",
+                        name, i,
+                    )
+                    return
+        # Then long breaks
+        if self.__long_queue is not None:
+            for i, brk in enumerate(self.__long_queue):
+                if brk.name == name:
+                    self.__current_long = (i + 1) % len(self.__long_queue)
+                    logging.info(
+                        "Legacy session restore: matched long break '%s' at index %d",
+                        name, i,
+                    )
+                    return
+        logging.warning(
+            "Legacy session restore: could not find break named '%s', "
+            "starting from the beginning.",
+            name,
+        )
 
     def __next_short(self) -> Break:
         shorts = self.__short_queue
