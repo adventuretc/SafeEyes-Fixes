@@ -94,10 +94,14 @@ def _parse_message_file(content):
 			remainder = re.sub(r"^-\s?", "", line)
 			current_message_lines = [remainder]
 		elif re.search(r"^\\-", line):
-			# Escaped dash: produce a literal - at the start of the line
+			# Escaped dash (literally \- ): produce a literal - at the start of the line
 			# (consume the backslash)
 			unescaped_line = line[1:]  # remove the leading backslash
 			current_message_lines.append(unescaped_line)
+		elif re.search(r"^//", line):
+			# this line is a comment.
+			# A /-t és //-t nem szükséges escapeelni regexben.
+			pass
 		else:
 			# Continuation of the current message (or file contents before the first "-" sign)
 			current_message_lines.append(line)
