@@ -264,6 +264,7 @@ def init(ctx, safeeyes_config, plugin_config):
 		long_breaks = safeeyes_config.get("long_breaks")
 		if long_breaks is not None and isinstance(long_breaks, list):
 			for msg in messages_for_long:
+				# long_breaks.append({"name": msg}) TODO: We could and should also inject images here. this way: {"image": path}. The image syntax in the input files should be /^image: (.*)/
 				long_breaks.append({"name": msg})
 				total_injected += 1
 
