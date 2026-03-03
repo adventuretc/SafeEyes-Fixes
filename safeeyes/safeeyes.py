@@ -651,6 +651,10 @@ class SafeEyes(Gtk.Application):
         break_obj.type = BreakType.LONG_BREAK # az üzenetek halmazának beállítása miatt rakom ezt ide. De működni fog ez vajon?
         break_obj.duration = duration_seconds
 
+        # Disallow postponing a manually requested break — the user asked
+        # for it, so postponing would defeat the purpose.
+        self.context.postpone_button_disabled = True
+
         # Take the break; after it finishes, the queue moves to the next
         # break anyway, so the override only affects this one break.
         # NOTE: the original duration is not restored because the break
