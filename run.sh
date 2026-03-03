@@ -31,7 +31,7 @@ pwd --physical
 
 
 export PYTHONPATH="/home/xy/workspace/Safeeyes fixálása/safeeyes-3.3.1/"
-python3 -m safeeyes "$@"
+python3 -m safeeyes $argv
 
 
 # if test -f "./Program.py"
@@ -45,5 +45,4 @@ python3 -m safeeyes "$@"
 	# echo "～Paused the terminal for readability."
 	# read x
 # end
-read x;
-
+# read x;
