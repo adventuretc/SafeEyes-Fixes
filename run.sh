@@ -30,7 +30,7 @@ pwd --physical
 #	    Output the physical working directory, with symlinks resolved.
 
 
-export PYTHONPATH="/home/xy/workspace/Safeeyes fixálása/safeeyes-3.3.1/"
+export PYTHONPATH="$DIR"
 python3 -m safeeyes $argv
 
 
