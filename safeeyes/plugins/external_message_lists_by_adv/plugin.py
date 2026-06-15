@@ -112,8 +112,8 @@ def _parse_message_file(content):
 		if msg:
 			messages.append(msg)
 	
-	logging.debug("Loaded all these messages (contents of one file):")
-	logging.debug(messages)
+	# logging.debug("Loaded all these messages (contents of one file):")
+	# logging.debug(messages) # logs are written to $HOME/safeeyes.log by default.
 	return messages
 
 

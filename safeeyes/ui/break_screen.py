@@ -309,13 +309,32 @@ class BreakScreen:
         # user's keyboard layout / keymap.
         passthrough_keysyms = [
             XK.XK_Num_Lock,
-            XK.XK_KP_5,
+            
             XK.XK_KP_Begin,      # KP_5 when NumLock is off
+            XK.XK_KP_5,
+            
+            XK.XK_KP_Left,
+            XK.XK_KP_4, # when NumLock is off. szükség van ezekre a dupla sorokra szerintem, de nem vagyok benne biztos.
+            
+            XK.XK_KP_Right,
+            XK.XK_KP_6, # when NumLock is off
+            
+            XK.XK_KP_Home,
+            XK.XK_KP_7, # when NumLock is off
+            
+            XK.XK_KP_End,
+            XK.XK_KP_1, # when NumLock is off
+            
             XK.XK_KP_Up,
+            XK.XK_KP_8, # when NumLock is off
+            
             XK.XK_KP_Down,
+            XK.XK_KP_2, # when NumLock is off
+            
             XK.XK_KP_Subtract,
             XK.XK_KP_Add,
             XK.XK_KP_Multiply,
+            
             XK.XK_Scroll_Lock,
             XK.XK_Return,
             XK.XK_Pause,
