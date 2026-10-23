@@ -83,16 +83,17 @@ def _parse_message_file(content):
 	for line in content.split("\n"):
 		# re.search("^...$") is used because re.match() is shit:
 		# it returns true even if only the beginning of the string matches.
-		if re.search(r"^-\s?", line):
+		# if re.search(r"^-\s?", line):
+		if re.search(r"^-\s*$", line):
 			# This line starts the next (a new) message.
 			# First, save the previous message if any.
 			if current_message_lines:
 				msg = "\n".join(current_message_lines).strip()
 				if msg:
 					messages.append(msg)
-			# Start the new message with the remainder after the dash
-			remainder = re.sub(r"^-\s?", "", line)
-			current_message_lines = [remainder]
+			# Start the new message with the remainder after the dash. Update: This code section is no longer needed.
+			# remainder = re.sub(r"^-\s?", "", line)
+			# current_message_lines = [remainder]
 		elif re.search(r"^\\-", line):
 			# Escaped dash (literally \- ): produce a literal - at the start of the line
 			# (consume the backslash)
