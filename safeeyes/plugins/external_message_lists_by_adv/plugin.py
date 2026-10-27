@@ -84,7 +84,8 @@ def _parse_message_file(content):
 		# re.search("^...$") is used because re.match() is shit:
 		# it returns true even if only the beginning of the string matches.
 		# if re.search(r"^-\s?", line):
-		if re.search(r"^-\s*$", line):
+		# if re.search(r"^-\s*$", line): a regexem hibátlan de mégsem működik. Talán valami python quirk.
+		if re.search(r"^-$", line):
 			# This line starts the next (a new) message.
 			# First, save the previous message if any.
 			if current_message_lines:
