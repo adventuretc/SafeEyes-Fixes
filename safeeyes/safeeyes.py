@@ -627,6 +627,8 @@ class SafeEyes(Gtk.Application):
         Temporarily overrides the current break's duration to the given
         number of minutes, then triggers the break. The duration is
         converted to seconds (rounded, at least 1 second).
+        
+        The message is not guaranteed to come from either the short nor the long break message pool; it comes from where it would otherwise come from.
         """
         if minutes <= 0:
             logging.warning(
@@ -651,7 +653,7 @@ class SafeEyes(Gtk.Application):
         # Temporarily override the current break's duration
         break_obj = self.safe_eyes_core._break_queue.get_break()
         original_duration = break_obj.duration
-        break_obj.type = BreakType.LONG_BREAK # az üzenetek halmazának beállítása miatt rakom ezt ide. De működni fog ez vajon?
+        # break_obj.type = BreakType.LONG_BREAK # az üzenetek halmazának beállítása miatt rakom ezt ide. De működni fog ez vajon? -> Nem. A mechanikájára hat de az üzeneteire nem, mert az már eleve bele van töltve. A take_break() fv egy Optional paramétere kéne legyen, hogy milyen hosszú legyen amellett, hogy short vagy long de túl nehéz implementálni ezt, mivel semmiféle API nincs még rá. A durationt egyáltalán nem mutálja sehol a program hanem a kód "legalja" betölti amikor startup közben felépíti a queue-t és kész. Nem éri meg.
         break_obj.duration = duration_seconds
 
         # Disallow postponing a manually requested break — the user asked
