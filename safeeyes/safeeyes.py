@@ -314,16 +314,16 @@ class SafeEyes(Gtk.Application):
         self.safe_eyes_core.on_count_down += self.countdown
         self.safe_eyes_core.on_stop_break += self.stop_break
         self.safe_eyes_core.on_update_next_break += self.update_next_break
-        self.safe_eyes_core.initialize(self.config)
-
+        # self.safe_eyes_core.initialize(self.config) # Reload plugins before initializing the core so injected breaks are included in the queue from the beginning.
+        
         try:
             self.plugins_manager.init(self.context, self.config)
         except RequiredPluginException as e:
             self.show_required_plugin_dialog(e)
 
-        # Re-initialize core after plugins init, because plugins like
-        # external_message_lists_by_adv may have injected new break entries
-        # into the config's short_breaks / long_breaks lists.
+        # Initialize the core only after the plugins have loaded because they
+        # may have injected potential sideloaded break messages and the core init relies
+        # on the correct number of break messages being present for saving and loading the state.
         self.safe_eyes_core.initialize(self.config)
 
         self.hold()
@@ -532,7 +532,7 @@ class SafeEyes(Gtk.Application):
 
         # Restart the core and initialize the components
         self.config = config
-        self.safe_eyes_core.initialize(config)
+        # self.safe_eyes_core.initialize(config) # Reload plugins before initializing the core so injected breaks are included in the queue from the beginning.
         self.break_screen.initialize(config)
 
         try:
@@ -541,7 +541,10 @@ class SafeEyes(Gtk.Application):
             self.show_required_plugin_dialog(e)
             return
 
-        # Re-initialize core after plugins reload, because plugins like
+        # Initialize the core only after the plugins have loaded because they
+        # may have injected potential sideloaded break messages and the core init relies
+        # on the correct number of break messages being present for saving and loading the state.
+        # Initialize core after plugins reload, because plugins like
         # external_message_lists_by_adv may have injected new break entries
         # into the config's short_breaks / long_breaks lists.
         self.safe_eyes_core.initialize(config)

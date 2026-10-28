@@ -187,6 +187,7 @@ class BreakQueue:
                     "starting from the beginning.",
                     last_short_idx, len(short_queue),
                 )
+                # context.session.pop("break_short_index", None)
 
         if last_long_idx is not None and long_queue is not None:
             if 0 <= last_long_idx < len(long_queue):
@@ -199,6 +200,7 @@ class BreakQueue:
                     "starting from the beginning.",
                     last_long_idx, len(long_queue),
                 )
+                # context.session.pop("break_long_index", None)
 
         # Also support restoring from the legacy "break" key (name-based)
         # so that existing session.json files from before this change

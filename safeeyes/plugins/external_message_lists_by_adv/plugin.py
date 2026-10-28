@@ -68,9 +68,10 @@ def _parse_message_file(content):
 	"""Parse a message file using the - at start of line separator format.
 
 	Rules:
-	- A line starting with a single - (dash) starts a new message.
+	- old: A line starting with a single - (dash) starts a new message.
 	  The remainder of that line (after the dash and optional space) is the
 	  beginning of the new message.
+	- new: A line containing a single - (hyphenminus) means the next line starts a new message.
 	- The file start itself also stars a new message.
 	- A line starting with \\- is an escaped dash: it produces a literal -
 	  at the start of that line within the current message.
@@ -78,39 +79,46 @@ def _parse_message_file(content):
 	- Messages are trimmed for whitespace on their start and end.
 	"""
 	messages = []
-	current_message_lines = []
+	lines_of_the_currently_parsed_message = []
 
 	for line in content.split("\n"):
 		# re.search("^...$") is used because re.match() is shit:
 		# it returns true even if only the beginning of the string matches.
 		# if re.search(r"^-\s?", line):
-		# if re.search(r"^-\s*$", line): a regexem hibátlan de mégsem működik. Talán valami python quirk.
-		if re.search(r"^-$", line):
+		# if re.search(r"^-\s*$", line): a regexem hibátlan de mégsem működik. Talán valami python quirk. Talán a \ jelet is escapelni kell, ahogy lent, tehát helyesen \\s.?
+		# if re.search(r"^-$", line):
+		# separator_match = re.match(r"^-(?:\s?(.*))?$", line)
+		# if separator_match:
+		if line == "-":
 			# This line starts the next (a new) message.
 			# First, save the previous message if any.
-			if current_message_lines:
-				msg = "\n".join(current_message_lines).strip()
+			if lines_of_the_currently_parsed_message:
+				msg = "\n".join(lines_of_the_currently_parsed_message).strip()
 				if msg:
 					messages.append(msg)
+				lines_of_the_currently_parsed_message = []
+			else:
+				lines_of_the_currently_parsed_message = [] # I'd rather have this statement duplicated since I created an error without it.
 			# Start the new message with the remainder after the dash. Update: This code section is no longer needed.
-			# remainder = re.sub(r"^-\s?", "", line)
-			# current_message_lines = [remainder]
+			# remainder = separator_match.group(1)
+			# current_message_lines = [remainder] if remainder else []
+			# Helyette viszont muszáj létrehozni az új listát, különben az előző üzenet line listáját visszük tovább ami hiba.
 		elif re.search(r"^\\-", line):
 			# Escaped dash (literally \- ): produce a literal - at the start of the line
 			# (consume the backslash)
 			unescaped_line = line[1:]  # remove the leading backslash
-			current_message_lines.append(unescaped_line)
+			lines_of_the_currently_parsed_message.append(unescaped_line)
 		elif re.search(r"^//", line):
 			# this line is a comment.
 			# A /-t és //-t nem szükséges escapeelni regexben.
 			pass
 		else:
 			# Continuation of the current message (or file contents before the first "-" sign)
-			current_message_lines.append(line)
+			lines_of_the_currently_parsed_message.append(line)
 
 	# Don't forget the last message
-	if current_message_lines:
-		msg = "\n".join(current_message_lines).strip()
+	if lines_of_the_currently_parsed_message:
+		msg = "\n".join(lines_of_the_currently_parsed_message).strip()
 		if msg:
 			messages.append(msg)
 	

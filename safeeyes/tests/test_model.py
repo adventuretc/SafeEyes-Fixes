@@ -189,6 +189,37 @@ class TestBreakQueue:
         assert not bq.is_empty(model.BreakType.SHORT_BREAK)
         assert bq.is_empty(model.BreakType.LONG_BREAK)
 
+    def test_invalid_saved_indices_are_reset(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        context = self.get_context()
+        context.session.update({"break_short_index": 3, "break_long_index": 4})
+
+        monkeypatch.setattr(model, "_", lambda message: message, raising=False)
+        config = configuration.Config(
+            user_config={
+                "short_breaks": [{"name": "short break 1"}, {"name": "short break 2"}],
+                "long_breaks": [
+                    {"name": "long break 1"},
+                    {"name": "long break 2"},
+                    {"name": "long break 3"},
+                    {"name": "long break 4"},
+                ],
+                "short_break_interval": 15,
+                "long_break_interval": 75,
+                "long_break_duration": 60,
+                "short_break_duration": 15,
+                "random_order": False,
+            },
+            system_config={},
+        )
+
+        bq = model.BreakQueue.create(config, context)
+
+        assert bq is not None
+        assert context.session["break_short_index"] == 0
+        assert context.session["break_long_index"] == 0
+
     def test_only_short_repeat_get_break_no_change(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
