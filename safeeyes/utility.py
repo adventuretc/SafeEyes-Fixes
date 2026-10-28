@@ -720,3 +720,8 @@ def remove_if_exists(list_of_items, item):
     """Remove the item from the list_of_items it it exists."""
     if item in list_of_items:
         list_of_items.remove(item)
+
+
+def high(value: typing.Sized) -> int:
+    """Returns the last index of a sized object, just like in some programming languages."""
+    return len(value) - 1

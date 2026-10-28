@@ -33,6 +33,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
 from safeeyes import utility
+from safeeyes.utility import high
 
 # Config is an intentional reexport - it used to be located here
 from safeeyes.configuration import Config
@@ -102,6 +103,8 @@ class Break:
 class BreakQueue:
     __current_break: Break
     __current_long: int = 0
+    __short_break_index_ever_selected: bool
+    __long_break_index_ever_selected: bool
     __current_short: int = 0
     __short_break_time: int
     __long_break_time: int
@@ -167,6 +170,10 @@ class BreakQueue:
         self.__is_random_order = is_random_order
         self.__short_queue = short_queue
         self.__long_queue = long_queue
+        self.__current_short = 0
+        self.__current_long = 0
+        self.__short_break_index_ever_selected = False
+        self.__long_break_index_ever_selected = False
 
         # Restore break indices from session.
         # The session stores the index of the last *completed* break
@@ -177,30 +184,32 @@ class BreakQueue:
         last_long_idx = context.session.get("break_long_index")
 
         if last_short_idx is not None and short_queue is not None:
-            if 0 <= last_short_idx < len(short_queue):
+            if 0 <= last_short_idx <= high(short_queue):
                 # Point to the break *after* the last completed one
                 self.__current_short = (last_short_idx + 1) % len(short_queue)
                 restored = True
             else:
+                context.session.pop("break_short_index", None) # remove invalid saved index from the context
+                self.__current_short = high(short_queue) # and start from the first or last available position (it was usually an overshoot, and messages on the end are shown less, so give them attention).
                 logging.warning(
                     "Saved short break index %d is out of range (queue length %d), "
-                    "starting from the beginning.",
+                    "starting from the last available message.",
                     last_short_idx, len(short_queue),
                 )
-                # context.session.pop("break_short_index", None)
 
         if last_long_idx is not None and long_queue is not None:
-            if 0 <= last_long_idx < len(long_queue):
+            if 0 <= last_long_idx <= high(long_queue):
                 # Point to the break *after* the last completed one
                 self.__current_long = (last_long_idx + 1) % len(long_queue)
                 restored = True
             else:
+                context.session.pop("break_long_index", None) # remove invalid saved index from the context
+                self.__current_long = high(long_queue) # and start from the first or last available position (it was usually an overshoot, and messages on the end are shown less, so give them attention).
                 logging.warning(
                     "Saved long break index %d is out of range (queue length %d), "
-                    "starting from the beginning.",
+                    "starting from the last available message.",
                     last_long_idx, len(long_queue),
                 )
-                # context.session.pop("break_long_index", None)
 
         # Also support restoring from the legacy "break" key (name-based)
         # so that existing session.json files from before this change
@@ -328,10 +337,11 @@ class BreakQueue:
         """
         # __next_short/__next_long already advanced the index past the
         # break they returned, so the "last picked" index is one step back.
-        if self.__short_queue is not None:
+        if self.__short_queue is not None and self.__short_break_index_ever_selected:
             last_short = (self.__current_short - 1) % len(self.__short_queue)
             self.context.session["break_short_index"] = last_short
-        if self.__long_queue is not None:
+
+        if self.__long_queue is not None and self.__long_break_index_ever_selected:
             last_long = (self.__current_long - 1) % len(self.__long_queue)
             self.context.session["break_long_index"] = last_long
 
@@ -382,6 +392,7 @@ class BreakQueue:
 
         # Update the index to next
         self.__current_short = (self.__current_short + 1) % len(shorts)
+        self.__short_break_index_ever_selected = True
 
         return break_obj
 
@@ -396,6 +407,7 @@ class BreakQueue:
 
         # Update the index to next
         self.__current_long = (self.__current_long + 1) % len(longs)
+        self.__long_break_index_ever_selected = True
 
         return break_obj
 
